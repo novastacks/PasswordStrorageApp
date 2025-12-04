@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun UnlockScreen(
+    masterPasswordRepository: MasterPasswordRepository,
     onUnlockSuccess: () -> Unit = {}
 ){
     var password by remember{ mutableStateOf("") }

@@ -9,39 +9,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.passwordstorageapp.feature.auth.MasterPasswordRepository
+import com.example.passwordstorageapp.feature.home.AppContent
 import com.example.passwordstorageapp.ui.theme.PasswordStorageAppTheme
 
 class MainActivity : ComponentActivity() {
+    private lateinit var masterPasswordRepository: MasterPasswordRepository
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        masterPasswordRepository = MasterPasswordRepository(applicationContext)
         setContent {
-            PasswordStorageAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+            AppContent(masterPasswordRepository)
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PasswordStorageAppTheme {
-        Greeting("Android")
-    }
-}

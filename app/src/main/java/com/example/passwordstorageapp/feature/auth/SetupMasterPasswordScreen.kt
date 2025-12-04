@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SetupMasterPasswordScreen(
+    masterPasswordRepository: MasterPasswordRepository,
     onSetupComplete: () -> Unit = {}
 ){
     var password by remember{ mutableStateOf("") }
