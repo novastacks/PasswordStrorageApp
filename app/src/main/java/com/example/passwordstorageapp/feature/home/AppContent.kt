@@ -17,6 +17,7 @@ import com.example.passwordstorageapp.feature.auth.UnlockScreen
 fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewModel : SessionViewModel, vaultViewModel: VaultViewModel){
     val navController = rememberNavController()
     val lifecycleOwner = LocalLifecycleOwner.current
+    var entryViewModel = EntryViewModel()
 
     DisposableEffect(lifecycleOwner, sessionViewModel) {
         val observer = LifecycleEventObserver{_, event ->
@@ -74,9 +75,15 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
                         }
                     }
                 },
-                sessionViewModel,
+                onEntryClick = { newEntryViewModel ->
+                    entryViewModel = newEntryViewModel
+                    navController.navigate("entry_screen")
+                },
                 vaultViewModel
             )
+        }
+        composable("entry_screen"){
+            EntryScreen(entryViewModel)
         }
     }
 }
