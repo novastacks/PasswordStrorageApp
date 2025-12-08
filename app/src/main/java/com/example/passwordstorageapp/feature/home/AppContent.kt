@@ -62,6 +62,7 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
             UnlockScreen(masterPasswordRepository, onUnlockSuccess = { derivedKey ->
                 sessionViewModel.vaultKey = derivedKey
                 sessionViewModel.markUnlocked()
+                vaultViewModel.setKey(derivedKey)
                 navController.navigate("home"){
                     popUpTo(navController.graph.startDestinationId){
                         inclusive = true
@@ -74,6 +75,7 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
                 onIdleTimeout = {
                     sessionViewModel.markLocked()
                     sessionViewModel.vaultKey = null
+                    vaultViewModel.clearKey()
                     navController.navigate("unlock"){
                         popUpTo(navController.graph.startDestinationId){
                             inclusive = true
@@ -90,7 +92,9 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
         composable("entry_screen"){
             val entry = currentEntry
             if(entry != null){
-                EntryScreen(entry)
+                EntryScreen(entry, onEditComplete = { editedEntry ->
+                    vaultViewModel.updateEntry(editedEntry)
+                })
             }
             else{
                 navController.popBackStack()
