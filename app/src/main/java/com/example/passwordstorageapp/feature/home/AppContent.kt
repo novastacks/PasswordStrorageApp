@@ -38,7 +38,6 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
         }
 
         lifecycleOwner.lifecycle.addObserver(observer)
-
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -85,6 +84,8 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
                 onEntryClick = { newEntry ->
                     currentEntry = newEntry
                     navController.navigate("entry_screen")
+                }, onSettingsClick = {
+                    navController.navigate("setting")
                 },
                 vaultViewModel
             )
@@ -94,11 +95,18 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
             if(entry != null){
                 EntryScreen(entry, onEditComplete = { editedEntry ->
                     vaultViewModel.updateEntry(editedEntry)
-                })
+                },
+                    onBack = {
+                        navController.navigate("home")
+                    })
             }
             else{
                 navController.popBackStack()
             }
+        }
+        composable("setting"){
+            SettingScreen(onBack = {navController.navigate("home")})
+
         }
     }
 }

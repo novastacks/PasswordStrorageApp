@@ -14,6 +14,7 @@ import androidx.fragment.app.FragmentActivity
 import com.example.passwordstorageapp.data.AppDatabase
 import com.example.passwordstorageapp.feature.home.VaultViewModel
 import com.example.passwordstorageapp.feature.home.VaultViewModelFactory
+import com.example.passwordstorageapp.ui.theme.ZeroTraceTheme
 import data.VaultRepository
 
 class MainActivity : FragmentActivity() {
@@ -35,7 +36,9 @@ class MainActivity : FragmentActivity() {
             }
         })
         setContent {
-            AppContent(masterPasswordRepository, sessionViewModel, vaultViewModel)
+            ZeroTraceTheme {
+                AppContent(masterPasswordRepository, sessionViewModel, vaultViewModel)
+            }
         }
     }
 }

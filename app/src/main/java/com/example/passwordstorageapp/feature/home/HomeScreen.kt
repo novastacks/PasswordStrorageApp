@@ -1,184 +1,123 @@
 package com.example.passwordstorageapp.feature.home
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.passwordstorageapp.data.VaultEntry
+import com.example.passwordstorageapp.ui.theme.GradientBackground
+import com.example.passwordstorageapp.ui.theme.ZeroTraceTheme
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onIdleTimeout : () -> Unit,
-    onEntryClick : (VaultEntry) -> Unit,
+    onIdleTimeout: () -> Unit,
+    onEntryClick: (VaultEntry) -> Unit,
+    onSettingsClick: () -> Unit,
     vaultViewModel: VaultViewModel
 ) {
-    var lastInteractionTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    ZeroTraceTheme {
+        GradientBackground {
+            // Idle timer
+            var lastInteractionTime by remember { mutableStateOf(System.currentTimeMillis()) }
 
-    fun touch() {
-        lastInteractionTime = System.currentTimeMillis()
-    }
+            fun touch() {
+                lastInteractionTime = System.currentTimeMillis()
+            }
 
-    val entries by vaultViewModel.entries.collectAsState()
+            // Database entries
+            val entries by vaultViewModel.entries.collectAsState()
 
-    var showAddDialog by remember { mutableStateOf(false) }
-    var serviceName by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
+            // Add-entry dialog fields
+            var showAddDialog by remember { mutableStateOf(false) }
+            var serviceName by remember { mutableStateOf("") }
+            var username by remember { mutableStateOf("") }
+            var password by remember { mutableStateOf("") }
+            var notes by remember { mutableStateOf("") }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("ZeroTrace") },
-                actions = {
-                    IconButton(onClick = {
-                        touch()
-                        showAddDialog = true
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add entry"
-                        )
-                    }
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = { Text("ZeroTrace") },
+                        actions = {
+                            IconButton(
+                                onClick = {
+                                    touch()
+                                    showAddDialog = true
+                                }
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Add entry")
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    touch()
+                                    onSettingsClick()
+                                }
+                            ) {
+                                Icon(Icons.Default.Settings, contentDescription = "Settings")
+                            }
+                        }
+                    )
                 }
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            if (entries.isEmpty()) {
-                // Empty state
-                Column(
+            ) { innerPadding ->
+
+                // Main screen content
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(innerPadding)
                 ) {
-                    Text("No entries yet")
-                    Spacer(Modifier.height(8.dp))
-                    Text("Tap + in the top bar to add one")
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(entries) { entry ->
-                        VaultEntryCard(
-                            entry = entry,
-                            onClick = {
+                    if (entries.isEmpty()) {
+                        EmptyState()
+                    } else {
+                        EntryList(
+                            entries = entries,
+                            onEntryClick = {
                                 touch()
-                                onEntryClick(entry)
+                                onEntryClick(it)
                             },
                             onDeleteClick = {
                                 touch()
-                                vaultViewModel.deleteEntry(entry)
+                                vaultViewModel.deleteEntry(it)
                             }
                         )
                     }
                 }
-            }
-        }
 
-        if (showAddDialog) {
-            AlertDialog(
-                onDismissRequest = {
-                    touch()
-                },
-                title = { Text("Add entry") },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = serviceName,
-                            onValueChange = {
-                                serviceName = it
-                                touch()
-                            },
-                            label = { Text("Service name") },
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = username,
-                            onValueChange = {
-                                username = it
-                                touch()
-                            },
-                            label = { Text("Username / email") },
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = {
-                                password = it
-                                touch()
-                            },
-                            label = { Text("Password") },
-                            singleLine = true
-                        )
-                        OutlinedTextField(
-                            value = notes,
-                            onValueChange = {
-                                notes = it
-                                touch()
-                            },
-                            label = { Text("Notes (optional)") },
-                            singleLine = false,
-                            maxLines = 3
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
+                // Add-entry dialog
+                if (showAddDialog) {
+                    AddEntryDialog(
+                        serviceName = serviceName,
+                        username = username,
+                        password = password,
+                        notes = notes,
+                        onServiceNameChange = { serviceName = it; touch() },
+                        onUsernameChange = { username = it; touch() },
+                        onPasswordChange = { password = it; touch() },
+                        onNotesChange = { notes = it; touch() },
+                        onDismiss = { showAddDialog = false; touch() },
+                        onConfirm = {
                             touch()
-                            if (serviceName.isNotBlank() && username.isNotBlank() && password.isNotBlank()) {
+                            if (serviceName.isNotBlank() &&
+                                username.isNotBlank() &&
+                                password.isNotBlank()
+                            ) {
                                 vaultViewModel.addEntry(
                                     service = serviceName.trim(),
                                     username = username.trim(),
                                     password = password.trim(),
                                     notes = notes.trim().ifBlank { null }
                                 )
-                                // clear fields
                                 serviceName = ""
                                 username = ""
                                 password = ""
@@ -186,36 +125,117 @@ fun HomeScreen(
                                 showAddDialog = false
                             }
                         }
-                    ) {
-                        Text("Save")
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            touch()
-                            showAddDialog = false
-                        }
-                    ) {
-                        Text("Cancel")
-                    }
+                    )
                 }
-            )
-        }
 
-        LaunchedEffect(Unit) {
-            val timeoutMs = 15_000L
-            while (true) {
-                delay(3_000L)
-                val now = System.currentTimeMillis()
-                val idleTime = now - lastInteractionTime
-                if (idleTime >= timeoutMs) {
-                    onIdleTimeout()
-                    break
+                // Idle timeout coroutine
+                LaunchedEffect(Unit) {
+                    val timeoutMs = 15_000L
+                    while (true) {
+                        delay(3_000L)
+                        if (System.currentTimeMillis() - lastInteractionTime >= timeoutMs) {
+                            onIdleTimeout()
+                            return@LaunchedEffect
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun EmptyState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("No entries yet")
+        Spacer(Modifier.height(8.dp))
+        Text("Tap + in the top bar to add one")
+    }
+}
+
+@Composable
+private fun EntryList(
+    entries: List<VaultEntry>,
+    onEntryClick: (VaultEntry) -> Unit,
+    onDeleteClick: (VaultEntry) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(entries) { entry ->
+            VaultEntryCard(
+                entry = entry,
+                onClick = { onEntryClick(entry) },
+                onDeleteClick = { onDeleteClick(entry) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun AddEntryDialog(
+    serviceName: String,
+    username: String,
+    password: String,
+    notes: String,
+    onServiceNameChange: (String) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onNotesChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add entry") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = serviceName,
+                    onValueChange = onServiceNameChange,
+                    label = { Text("Service name") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = onUsernameChange,
+                    label = { Text("Username / email") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = onPasswordChange,
+                    label = { Text("Password") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = onNotesChange,
+                    label = { Text("Notes (optional)") },
+                    maxLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -241,12 +261,7 @@ private fun VaultEntryCard(
                     text = entry.serviceName,
                     style = MaterialTheme.typography.titleMedium
                 )
-                IconButton(
-                    onClick = {
-                        // Prevent click-through to the card click
-                        onDeleteClick()
-                    }
-                ) {
+                IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete entry",
@@ -259,7 +274,7 @@ private fun VaultEntryCard(
 
             if (!entry.notes.isNullOrBlank()) {
                 Text(
-                    entry.notes,
+                    entry.notes!!,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
