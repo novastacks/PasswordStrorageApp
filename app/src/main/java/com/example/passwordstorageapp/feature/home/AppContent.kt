@@ -19,17 +19,24 @@ import com.example.passwordstorageapp.feature.auth.SetupMasterPasswordScreen
 import com.example.passwordstorageapp.feature.auth.UnlockScreen
 
 @Composable
-fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewModel : SessionViewModel, vaultViewModel: VaultViewModel){
+fun AppContent(
+    masterPasswordRepository: MasterPasswordRepository,
+    sessionViewModel: SessionViewModel,
+    vaultViewModel: VaultViewModel,
+    darkModeEnabled: Boolean,
+    onDarkModeToggle: (Boolean) -> Unit
+) {
     val navController = rememberNavController()
     val lifecycleOwner = LocalLifecycleOwner.current
     var currentEntry by remember { mutableStateOf<VaultEntry?>(null) }
 
+    // Auto-lock on app moving to foreground if locked
     DisposableEffect(lifecycleOwner, sessionViewModel) {
-        val observer = LifecycleEventObserver{_, event ->
-            if(event == Lifecycle.Event.ON_START){
-                if(masterPasswordRepository.isMasterPasswordSet() && !sessionViewModel.isUnlocked){
-                    navController.navigate("unlock"){
-                        popUpTo(navController.graph.startDestinationId){
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                if (masterPasswordRepository.isMasterPasswordSet() && !sessionViewModel.isUnlocked) {
+                    navController.navigate("unlock") {
+                        popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
                         }
                     }
@@ -43,40 +50,54 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
         }
     }
 
-    NavHost(navController=navController, startDestination =
-        if(!masterPasswordRepository.isMasterPasswordSet()){
-            "setup"
-        }
-        else if(!sessionViewModel.isUnlocked){
-            "unlock"
-        }
-        else{
-            "home"
-        }
-    ){
-        composable("setup"){
-            SetupMasterPasswordScreen(masterPasswordRepository, onSetupComplete = { navController.navigate("unlock") })
-        }
-        composable("unlock"){
-            UnlockScreen(masterPasswordRepository, onUnlockSuccess = { derivedKey ->
-                sessionViewModel.vaultKey = derivedKey
-                sessionViewModel.markUnlocked()
-                vaultViewModel.setKey(derivedKey)
-                navController.navigate("home"){
-                    popUpTo(navController.graph.startDestinationId){
-                        inclusive = true
+    NavHost(
+        navController = navController,
+        startDestination =
+            if (!masterPasswordRepository.isMasterPasswordSet()) {
+                "setup"
+            } else if (!sessionViewModel.isUnlocked) {
+                "unlock"
+            } else {
+                "home"
+            }
+    ) {
+        composable("setup") {
+            SetupMasterPasswordScreen(
+                masterPasswordRepository = masterPasswordRepository,
+                onSetupComplete = {
+                    navController.navigate("unlock") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
                     }
                 }
-            })
+            )
         }
-        composable("home"){
+
+        composable("unlock") {
+            UnlockScreen(
+                masterPasswordRepository = masterPasswordRepository,
+                onUnlockSuccess = { derivedKey ->
+                    sessionViewModel.vaultKey = derivedKey
+                    sessionViewModel.markUnlocked()
+                    vaultViewModel.setKey(derivedKey)
+                    navController.navigate("home") {
+                        popUpTo(navController.graph.startDestinationId) {
+                            inclusive = true
+                        }
+                    }
+                }
+            )
+        }
+
+        composable("home") {
             HomeScreen(
                 onIdleTimeout = {
                     sessionViewModel.markLocked()
                     sessionViewModel.vaultKey = null
                     vaultViewModel.clearKey()
-                    navController.navigate("unlock"){
-                        popUpTo(navController.graph.startDestinationId){
+                    navController.navigate("unlock") {
+                        popUpTo(navController.graph.startDestinationId) {
                             inclusive = true
                         }
                     }
@@ -84,29 +105,35 @@ fun AppContent(masterPasswordRepository: MasterPasswordRepository, sessionViewMo
                 onEntryClick = { newEntry ->
                     currentEntry = newEntry
                     navController.navigate("entry_screen")
-                }, onSettingsClick = {
+                },
+                onSettingsClick = {
                     navController.navigate("setting")
                 },
-                vaultViewModel
+                vaultViewModel = vaultViewModel
             )
         }
-        composable("entry_screen"){
+
+        composable("entry_screen") {
             val entry = currentEntry
-            if(entry != null){
-                EntryScreen(entry, onEditComplete = { editedEntry ->
-                    vaultViewModel.updateEntry(editedEntry)
-                },
-                    onBack = {
-                        navController.navigate("home")
-                    })
-            }
-            else{
+            if (entry != null) {
+                EntryScreen(
+                    vaultEntry = entry,
+                    onEditComplete = { editedEntry ->
+                        vaultViewModel.updateEntry(editedEntry)
+                    },
+                    onBack = { navController.popBackStack() }
+                )
+            } else {
                 navController.popBackStack()
             }
         }
-        composable("setting"){
-            SettingScreen(onBack = {navController.navigate("home")})
 
+        composable("setting") {
+            SettingScreen(
+                darkModeEnabled = darkModeEnabled,
+                onDarkModeToggle = onDarkModeToggle,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

@@ -57,6 +57,7 @@ dependencies {
     // Room Dependencies
     // Removed implementation(libs.androidx.room.common.jvm)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.foundation)
     ksp(libs.androidx.room.compiler)
 
     implementation(libs.material3)

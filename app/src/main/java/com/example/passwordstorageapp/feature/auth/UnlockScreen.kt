@@ -3,99 +3,161 @@ package com.example.passwordstorageapp.feature.auth
 import android.widget.Toast
 import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.example.passwordstorageapp.ui.theme.GradientBackground
-import com.example.passwordstorageapp.ui.theme.ZeroTraceTheme
 
 @Composable
 fun UnlockScreen(
     masterPasswordRepository: MasterPasswordRepository,
     onUnlockSuccess: (ByteArray) -> Unit = {}
 ) {
-    ZeroTraceTheme {
-        GradientBackground {
-            var password by remember { mutableStateOf("") }
-            var errorMessage by remember { mutableStateOf<String?>(null) }
-            val context = LocalContext.current
+    GradientBackground {
+        val context = LocalContext.current
 
-            // Defensive cast — fail loudly if not inside FragmentActivity
-            val activity = context as? FragmentActivity
-                ?: error("UnlockScreen must be hosted in a FragmentActivity")
+        // Defensive cast — fail loudly if not inside FragmentActivity
+        val activity = context as? FragmentActivity
+            ?: error("UnlockScreen must be hosted in a FragmentActivity")
 
-            val biometricKeyStoreManager = remember { BiometricKeyStoreManager(context) }
-            val hasBiometric by remember {
-                mutableStateOf(biometricKeyStoreManager.loadDerivedKey() != null)
-            }
+        val biometricKeyStoreManager = remember { BiometricKeyStoreManager(context) }
+        val hasBiometric by remember {
+            mutableStateOf(biometricKeyStoreManager.loadDerivedKey() != null)
+        }
 
+        var password by remember { mutableStateOf("") }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Column(
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text("Enter master password")
-
-                Spacer(Modifier.height(8.dp))
-
-                TextField(
-                    value = password,
-                    onValueChange = {
-                        password = it
-                        errorMessage = null
-                    },
+                Card(
                     modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation()
-                )
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Unlock your vault",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = "Enter your master password to decrypt your data.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
 
-                Button(onClick = {
-                    val derivedKey = masterPasswordRepository.verifyPassword(password)
-                    if (derivedKey != null) {
-                        errorMessage = null
-                        biometricKeyStoreManager.saveDerivedKey(derivedKey)
-                        onUnlockSuccess(derivedKey)
-                    } else {
-                        errorMessage = "Wrong master password"
-                    }
-                }) {
-                    Text("Verify")
-                }
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = {
+                                password = it
+                                errorMessage = null
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Master password") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            )
+                        )
 
-                Spacer(Modifier.height(16.dp))
-
-                if (hasBiometric) {
-                    Button(
-                        onClick = {
-                            launchBiometricPrompt(
-                                activity = activity,
-                                biometricKeyStoreManager = biometricKeyStoreManager,
-                                onSuccess = onUnlockSuccess,
-                                onError = { msg ->
-                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                }
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium
                             )
                         }
-                    ) {
-                        Text("Unlock with biometric")
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Button(
+                            onClick = {
+                                val derivedKey = masterPasswordRepository.verifyPassword(password)
+                                if (derivedKey != null) {
+                                    errorMessage = null
+                                    // Cache derived key for biometric unlock next time
+                                    biometricKeyStoreManager.saveDerivedKey(derivedKey)
+                                    onUnlockSuccess(derivedKey)
+                                } else {
+                                    errorMessage = "Incorrect master password"
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text(
+                                text = "Unlock",
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+
+                        if (hasBiometric) {
+                            OutlinedButton(
+                                onClick = {
+                                    launchBiometricPrompt(
+                                        activity = activity,
+                                        biometricKeyStoreManager = biometricKeyStoreManager,
+                                        onSuccess = onUnlockSuccess,
+                                        onError = { msg ->
+                                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                Text(
+                                    text = "Unlock with biometrics",
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                        }
                     }
-
-                    Spacer(Modifier.height(16.dp))
                 }
 
-                errorMessage?.let {
-                    Spacer(Modifier.height(8.dp))
-                    Text(text = it)
-                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Zero Trace keeps everything encrypted locally. " +
+                            "Your master password is never stored or sent anywhere.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -137,7 +199,7 @@ fun launchBiometricPrompt(
 
     val promptInfo = BiometricPrompt.PromptInfo.Builder()
         .setTitle("Unlock Zero Trace")
-        .setSubtitle("Use biometrics")
+        .setSubtitle("Use your fingerprint or face")
         .setNegativeButtonText("Use master password")
         .build()
 
