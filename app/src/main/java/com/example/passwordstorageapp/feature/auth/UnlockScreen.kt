@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import com.example.passwordstorageapp.ui.theme.GradientBackground
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.luminance
 
 @Composable
 fun UnlockScreen(
@@ -38,6 +40,24 @@ fun UnlockScreen(
         var password by remember { mutableStateOf("") }
         var errorMessage by remember { mutableStateOf<String?>(null) }
 
+        // Dark / light detection for card styling
+        val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+        val cardColors = if (isDark) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            )
+        } else {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+            )
+        }
+
+        val cardElevation = if (isDark) 8.dp else 6.dp
+        val cardBorder: BorderStroke? =
+            if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+            else null
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -52,10 +72,9 @@ fun UnlockScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    colors = cardColors,
+                    elevation = CardDefaults.cardElevation(defaultElevation = cardElevation),
+                    border = cardBorder
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),
@@ -105,7 +124,9 @@ fun UnlockScreen(
                                 if (derivedKey != null) {
                                     errorMessage = null
                                     // Cache derived key for biometric unlock next time
-                                    biometricKeyStoreManager.saveDerivedKey(derivedKey)
+                                    if(hasBiometric){
+                                        biometricKeyStoreManager.saveDerivedKey(derivedKey)
+                                    }
                                     onUnlockSuccess(derivedKey)
                                 } else {
                                     errorMessage = "Incorrect master password"
@@ -151,7 +172,7 @@ fun UnlockScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "Zero Trace keeps everything encrypted locally. " +
+                    text = "Singularity Vault keeps everything encrypted locally. " +
                             "Your master password is never stored or sent anywhere.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
@@ -198,7 +219,7 @@ fun launchBiometricPrompt(
     val biometricPrompt = BiometricPrompt(activity, executor, callback)
 
     val promptInfo = BiometricPrompt.PromptInfo.Builder()
-        .setTitle("Unlock Zero Trace")
+        .setTitle("Unlock Singularity Vault")
         .setSubtitle("Use your fingerprint or face")
         .setNegativeButtonText("Use master password")
         .build()

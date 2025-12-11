@@ -2,12 +2,14 @@ package com.example.passwordstorageapp.feature.auth
 
 import android.widget.Toast
 import androidx.biometric.BiometricManager
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,6 +34,24 @@ fun SetupMasterPasswordScreen(
         var pendingDerivedKey by remember { mutableStateOf<ByteArray?>(null) }
         var showBiometricDialog by remember { mutableStateOf(false) }
 
+        // Dark / light detection for card styling
+        val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
+        val cardColors = if (isDark) {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+            )
+        } else {
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+            )
+        }
+
+        val cardElevation = if (isDark) 8.dp else 6.dp
+        val cardBorder: BorderStroke? =
+            if (isDark) BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+            else null
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -47,10 +67,9 @@ fun SetupMasterPasswordScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    colors = cardColors,
+                    elevation = CardDefaults.cardElevation(defaultElevation = cardElevation),
+                    border = cardBorder
                 ) {
                     Column(
                         modifier = Modifier.padding(24.dp),

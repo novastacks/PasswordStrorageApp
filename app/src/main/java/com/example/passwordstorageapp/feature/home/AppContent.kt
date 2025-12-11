@@ -27,48 +27,43 @@ fun AppContent(
     onDarkModeToggle: (Boolean) -> Unit
 ) {
     val navController = rememberNavController()
-    val lifecycleOwner = LocalLifecycleOwner.current
     var currentEntry by remember { mutableStateOf<VaultEntry?>(null) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Auto-lock on app moving to foreground if locked
     DisposableEffect(lifecycleOwner, sessionViewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_START) {
                 if (masterPasswordRepository.isMasterPasswordSet() && !sessionViewModel.isUnlocked) {
                     navController.navigate("unlock") {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
-                        }
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
                     }
                 }
             }
         }
-
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+
+    // Decide start destination directly
+    val startDestination =
+        if (!masterPasswordRepository.isMasterPasswordSet()) {
+            "setup"
+        } else if (!sessionViewModel.isUnlocked) {
+            "unlock"
+        } else {
+            "home"
+        }
 
     NavHost(
         navController = navController,
-        startDestination =
-            if (!masterPasswordRepository.isMasterPasswordSet()) {
-                "setup"
-            } else if (!sessionViewModel.isUnlocked) {
-                "unlock"
-            } else {
-                "home"
-            }
+        startDestination = startDestination
     ) {
         composable("setup") {
             SetupMasterPasswordScreen(
                 masterPasswordRepository = masterPasswordRepository,
                 onSetupComplete = {
                     navController.navigate("unlock") {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
-                        }
+                        popUpTo("setup") { inclusive = true }
                     }
                 }
             )
@@ -81,10 +76,9 @@ fun AppContent(
                     sessionViewModel.vaultKey = derivedKey
                     sessionViewModel.markUnlocked()
                     vaultViewModel.setKey(derivedKey)
+
                     navController.navigate("home") {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
-                        }
+                        popUpTo("unlock") { inclusive = true }
                     }
                 }
             )
@@ -96,10 +90,9 @@ fun AppContent(
                     sessionViewModel.markLocked()
                     sessionViewModel.vaultKey = null
                     vaultViewModel.clearKey()
+
                     navController.navigate("unlock") {
-                        popUpTo(navController.graph.startDestinationId) {
-                            inclusive = true
-                        }
+                        popUpTo("home") { inclusive = true }
                     }
                 },
                 onEntryClick = { newEntry ->
@@ -120,8 +113,18 @@ fun AppContent(
                     vaultEntry = entry,
                     onEditComplete = { editedEntry ->
                         vaultViewModel.updateEntry(editedEntry)
+                        currentEntry = editedEntry
                     },
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onIdleTimeout = {
+                        sessionViewModel.markLocked()
+                        sessionViewModel.vaultKey = null
+                        vaultViewModel.clearKey()
+
+                        navController.navigate("unlock") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    }
                 )
             } else {
                 navController.popBackStack()
@@ -130,9 +133,19 @@ fun AppContent(
 
         composable("setting") {
             SettingScreen(
+                masterPasswordRepository = masterPasswordRepository,
                 darkModeEnabled = darkModeEnabled,
                 onDarkModeToggle = onDarkModeToggle,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onIdleTimeout = {
+                    sessionViewModel.markLocked()
+                    sessionViewModel.vaultKey = null
+                    vaultViewModel.clearKey()
+
+                    navController.navigate("unlock") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
             )
         }
     }

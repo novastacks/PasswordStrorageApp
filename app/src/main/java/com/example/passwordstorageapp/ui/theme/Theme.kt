@@ -39,7 +39,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun ZeroTraceTheme(
+fun SingularityVaultTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
